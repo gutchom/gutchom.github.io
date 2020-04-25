@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="initial-scale=1.0, width=device-width" />
+  <title>Verticalizer</title>
+  <style>
+    textarea, button {
+      font-size: 18px;
+    }
+    form > * {
+      display: block;
+      margin: 16px auto;
+    }
+  </style>
+</head>
+<body>
+  <a href="/">←Topに戻る</a>
+  <form id="converter">
+    <textarea name="text" cols="32" rows="16">
+縦書きの
+ツイート作るよ
+最上川
+
+
+字面合わせに
+全角スペースで埋めるので
+実字数は増えます</textarea>
+    <button name="rotate" type="button">縦書きにする</button>
+    <textarea name="result" cols="32" rows="16"></textarea>
+  </form>
+  <script>
+    // HTML要素にid属性を持たせるとグローバルスコープにid属性を識別子とした変数が現れるので便利（!!!危ない!!!）
+    // 参考資料：https://qiita.com/nakajmg/items/c895105afae95bfa8fae
+    converter.rotate.onclick = _ => converter.result.value = verticalizer(converter.text.value)
+
+    function verticalizer(text) {
+      const 全角スペース = '\u3000'
+      return text
+        .split('\n')
+        .reduce((text, line) => text + '\n' + line + 全角スペース.repeat((text = text.split('\n').slice(-1)[0]).length > line.length ? text.length - line.length : 0))
+        .split('\n')
+        .map(str => str.split(''))
+        .reduceRight((arr, line) => arr.map((str, index) => str + (index < line.length ? line[index] : '')))
+        .join('\n')
+        .replace(/ー/g, ' | ')
+    }
+  </script>
+</body>
+</html>
