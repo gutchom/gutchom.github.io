@@ -22,6 +22,10 @@
     <br>
     React.jsとVue.jsはチョットワカル。
   </p>
+  <nav>
+    <h2>目次</h2>
+    <ul></ul>
+  </nav>
   <article>
     <h2>CopyProtectDocumentViewer</h2>
     <p>
@@ -81,5 +85,21 @@
     </p>
     <a href="https://games.gutchom.com/">→見てみる</a>
   </article>
+  <script>
+    (() => {
+      // ページ内リンクによる目次を作成
+      const articles = document.getElementsByTagName('article');
+      const [nav] = document.getElementsByTagName('nav');
+      const [ul] = nav.getElementsByTagName('ul');
+      for (const article of articles) {
+        const title = article.firstElementChild.textContent;
+        const li = ul.appendChild(document.createElement('li'));
+        const a = li.appendChild(document.createElement('a'));
+        a.href = `#${title}`;
+        a.textContent = title;
+        article.id = title;
+      }
+    })();
+  </script>
 </body>
 </html>
