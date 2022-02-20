@@ -100,14 +100,14 @@
 
   document.querySelector('button').addEventListener('click', (e) => {
     document.getElementById('lyrics').innerHTML = parse(e.target.previousElementSibling.value)
-    document.querySelectorAll('rb').forEach(el => el.onclick = handleRbClick)
+    document.querySelectorAll('ruby.kanji').forEach(el => el.onclick = handleKanjiClick)
     document.querySelectorAll('rt').forEach(el => el.onclick = handleRtClick)
     e.target.parentElement.remove()
   });
 
-  function handleRbClick(e) {
+  function handleKanjiClick(e) {
     e.stopPropagation()
-    appendInput(e.target.nextElementSibling)
+    appendInput([...e.target.children].find(el => el.tagName === 'RT'))
   }
 
   function handleRtClick(e) {
@@ -147,16 +147,12 @@
     }
   }
 
+  const markup = (head, tail) => (pattern, last = false) => char => [head + char, char, char, tail + char][last * 2 - (last = pattern.test(char)) + 1]
 
   function parse(text) {
-    const markup = (head, tail, middle) => pattern => {
-      let last = false
-      return char => [head + char, char, middle || char, tail + char][last * 2 - (last = pattern.test(char)) + 1]
-    }
-    const kanji = markup('<ruby><rb>', '</rb><rt class="kana"></rt></ruby>')(/(?:[々〇〻\u2E80-\u2FDF\u3400-\u4DBF\u4E00-\u9FFF\uF900-\uFAFF]|[\uD840-\uD87F][\uDC00-\uDFFF])/)
-    const block = markup('<br>\n<rtc lang="en-US"></rtc>\n</ruby>\n<br>', '<ruby class="sentence">\n', '</p>\n<p>')(/\n/)
-
-    return text.split('').reduce((markup, char) => markup + block(kanji(char)), '\n<p>\n<ruby class="sentence">\n') + '</p>\n'
+    const kanji = markup('<ruby class="kanji">', '<rt class="kana" lang="ja-JP"></rt></ruby>')(/(?:[々〇〻\u2E80-\u2FDF\u3400-\u4DBF\u4E00-\u9FFF\uF900-\uFAFF]|[\uD840-\uD87F][\uDC00-\uDFFF])/)
+    const br = markup('', '<br>')(/\n/)
+    return text.split('').reduce((markup, char) => markup + br(kanji(char)), '')
   }
 })();
 </script>
