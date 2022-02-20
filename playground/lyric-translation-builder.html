@@ -104,13 +104,13 @@
     press[e.key] = false
   }
 
-  document.querySelector('button').onclick = function(e) {
+  document.querySelector('button').addEventListener('click', (e) => {
     document.getElementById('lyrics').innerHTML = parse(e.target.previousElementSibling.value)
     document.querySelectorAll('rb').forEach(el => el.onclick = handleRbClick)
     document.querySelectorAll('rt').forEach(el => el.onclick = handleRtClick)
     document.querySelectorAll('ruby.sentence').forEach(el => el.onclick = handleSentenceClick)
     e.target.parentElement.remove()
-  }
+  });
 
   function handleRbClick(e) {
     e.stopPropagation()
