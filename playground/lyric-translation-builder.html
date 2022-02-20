@@ -109,7 +109,6 @@
     document.getElementById('lyrics').innerHTML = parse(e.target.previousElementSibling.value)
     document.querySelectorAll('rb').forEach(el => el.onclick = handleRbClick)
     document.querySelectorAll('rt').forEach(el => el.onclick = handleRtClick)
-    document.querySelectorAll('ruby.sentence').forEach(el => el.onclick = handleSentenceClick)
     e.target.parentElement.remove()
   });
 
@@ -121,11 +120,6 @@
   function handleRtClick(e) {
     e.stopPropagation()
     appendInput(e.target)
-  }
-
-  // TODO: 現在開いている行以降の行をクリックした際に一旦入力欄が閉じる挙動を、連続的にフォーカスが映るようにする
-  function handleSentenceClick(e) {
-    appendInput(e.currentTarget.lastElementChild)
   }
 
   function appendInput(element) {
@@ -149,13 +143,6 @@
         e.target.blur()
         break
       case 'Enter':
-        e.preventDefault()
-      /*
-      case 'Enter':
-        const sentence = find(e.target, el => el.classList.contains('sentence'))
-        appendInput(e.target.parentElement.tagName === 'RTC' ? sentence.nextElementSibling.lastElementChild : sentence.lastElementChild)
-        break
-      */
       case 'Tab':
         e.preventDefault()
         const elements = [...document.querySelectorAll('#lyrics rt')]
@@ -167,13 +154,6 @@
     }
   }
 
-  function find(element, test) {
-    if (test(element)) {
-      return element
-    } else if (element.parentElement) {
-      return find(element.parentElement, test)
-    }
-  }
 
   function parse(text) {
     const markup = (head, tail, middle) => pattern => {
