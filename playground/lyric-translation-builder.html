@@ -22,15 +22,8 @@
     section.lyrics p {
       font-size: 18px;
     }
-    rt.kana,
-    rtc {
+    rt.kana {
       user-select: none;
-    }
-    rtc {
-      font-size: 75%;
-    }
-    rtc input {
-      width: 20em;
     }
   </style>
 </head>
@@ -91,6 +84,7 @@
 </section>
 
 <script>
+;(() => {
   const press = {}
 
   window.addEventListener('keydown', handleKeyDown)
@@ -104,27 +98,21 @@
     press[e.key] = false
   }
 
-  document.querySelector('button').onclick = function(e) {
+  document.querySelector('button').addEventListener('click', (e) => {
     document.getElementById('lyrics').innerHTML = parse(e.target.previousElementSibling.value)
-    document.querySelectorAll('rb').forEach(el => el.onclick = handleRbClick)
+    document.querySelectorAll('ruby.kanji').forEach(el => el.onclick = handleKanjiClick)
     document.querySelectorAll('rt').forEach(el => el.onclick = handleRtClick)
-    document.querySelectorAll('ruby.sentence').forEach(el => el.onclick = handleSentenceClick)
     e.target.parentElement.remove()
-  }
+  });
 
-  function handleRbClick(e) {
+  function handleKanjiClick(e) {
     e.stopPropagation()
-    appendInput(e.target.nextElementSibling)
+    appendInput([...e.target.children].find(el => el.tagName === 'RT'))
   }
 
   function handleRtClick(e) {
     e.stopPropagation()
     appendInput(e.target)
-  }
-
-  // TODO: 現在開いている行以降の行をクリックした際に一旦入力欄が閉じる挙動を、連続的にフォーカスが映るようにする
-  function handleSentenceClick(e) {
-    appendInput(e.currentTarget.lastElementChild)
   }
 
   function appendInput(element) {
@@ -148,13 +136,6 @@
         e.target.blur()
         break
       case 'Enter':
-        e.preventDefault()
-      /*
-      case 'Enter':
-        const sentence = find(e.target, el => el.classList.contains('sentence'))
-        appendInput(e.target.parentElement.tagName === 'RTC' ? sentence.nextElementSibling.lastElementChild : sentence.lastElementChild)
-        break
-      */
       case 'Tab':
         e.preventDefault()
         const elements = [...document.querySelectorAll('#lyrics rt')]
@@ -166,38 +147,14 @@
     }
   }
 
-  function find(element, test) {
-    if (test(element)) {
-      return element
-    } else if (element.parentElement) {
-      return find(element.parentElement, test)
-    }
-  }
+  const markup = (head, tail) => (pattern, last = false) => char => [head + char, char, char, tail + char][last * 2 - (last = pattern.test(char)) + 1]
 
   function parse(text) {
-    const markup = (head, tail, middle) => pattern => {
-      let last = false
-      return char => [head + char, char, middle || char, tail + char][last * 2 - (last = pattern.test(char)) + 1]
-    }
-    const kanji = markup('<ruby><rb>', '</rb><rt class="kana"></rt></ruby>')(/(?:[々〇〻\u2E80-\u2FDF\u3400-\u4DBF\u4E00-\u9FFF\uF900-\uFAFF]|[\uD840-\uD87F][\uDC00-\uDFFF])/)
-    const block = markup('<br>\n<rtc lang="en-US"></rtc>\n</ruby>\n<br>', '<ruby class="sentence">\n', '</p>\n<p>')(/\n/)
-
-    return text.split('').reduce((markup, char) => markup + block(kanji(char)), '\n<p>\n<ruby class="sentence">\n') + '</p>\n'
+    const kanji = markup('<ruby class="kanji">', '<rt class="kana" lang="ja-JP"></rt></ruby>')(/(?:[々〇〻\u2E80-\u2FDF\u3400-\u4DBF\u4E00-\u9FFF\uF900-\uFAFF]|[\uD840-\uD87F][\uDC00-\uDFFF])/)
+    const br = markup('', '<br>')(/\n/)
+    return text.split('').reduce((markup, char) => markup + br(kanji(char)), '')
   }
-
-  function getSelectionText(lang) {
-    const frag = window.getSelection().getRangeAt(0).cloneContents()
-    const translations = frag.querySelectorAll(`rtc:lang(${lang})`)
-
-    console.log(translations)
-
-    return [...(translations.length > 0 ? translations : removeByQuery(frag , 'rtc', lang === 'kana' ? 'rb' : 'rt.kana').children)].map(el => el.textContent.replace(/\s{2,}/g, '')).filter(sentence => sentence.length > 0).join('\n')
-
-    function removeByQuery(fragment, ...selectors) {
-      selectors.forEach(selector => fragment.querySelectorAll(selector).forEach(el => el.remove()))
-      return fragment
-    }
-  }
+})();
 </script>
 </body>
 </html>
