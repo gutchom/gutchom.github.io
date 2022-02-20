@@ -91,6 +91,7 @@
 </section>
 
 <script>
+;(() => {
   const press = {}
 
   window.addEventListener('keydown', handleKeyDown)
@@ -184,6 +185,7 @@
 
     return text.split('').reduce((markup, char) => markup + block(kanji(char)), '\n<p>\n<ruby class="sentence">\n') + '</p>\n'
   }
+})();
 </script>
 </body>
 </html>
