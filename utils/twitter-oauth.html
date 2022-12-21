@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>ぐっちょむの物置 - Twitter OAuth</title>
+</head>
+<body>
+<label>
+  credentials
+  <input hidden type="password" id="consumer_key">
+  <input hidden type="password" id="consumer_secret">
+  <input hidden type="password" id="access_token">
+  <input hidden type="password" id="access_token_secret">
+</label>
+
+<label>
+  Tweet
+  <input id="text">
+  <input id="link">
+  <input id="images" type="file" accept="image/*" multiple>
+</label>
+
+<button id="tweet">tweet</button>
+
+<script>
+  ;(async () => {
+    document.getElementById('tweet').addEventListener('click', tweet);
+
+    async function tweet() {
+      const inputs = (...ids) => ids.map((name) => document.getElementById(name).value);
+      const client = new TwitterClient(...inputs('consumer_key', 'consumer_secret', 'access_token', 'access_token_secret'));
+      const [text, link, images] = inputs('text', 'link', 'images');
+
+      const json = await client.tweet(text, link, );
+      console.log(json);
+    }
+
+    async function fileToBase64(file) {
+      return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(reader.result);
+        reader.onerror = error => reject(error);
+        reader.readAsDataURL(file);
+      })
+    }
+
+    class TwitterClient extends OauthClient {
+      constructor(consumerKey, consumerSecret, accessToken, accessTokenSecret) {
+        super(consumerKey, consumerSecret, accessToken, accessTokenSecret);
+      }
+
+      async tweet(text, attachment_url = null, images = []) {
+        const endpoint = 'https://api.twitter.com/1.1/statuses/update.json';
+        const params = new Map();
+        params.set('status', text);
+        if (attachment_url) params.set('attachment_url', (new URL(attachment_url)).href);
+        if (images.length > 0) params.set('media_ids', await this.getMediaIds(images));
+
+        const headers = { 'Authorization': await super.getAuthorizedClient('GET', endpoint, params) }
+        const response = await fetch(endpoint, { method: 'GET', headers });
+
+        return response.json();
+      }
+
+      async getMediaIds(...images) {
+        return (await Promise.all(images.map(this.upload))).join(',');
+      }
+
+      async upload(image) {
+        const endpoint = 'https://upload.twitter.com/1.1/media/upload.json?media_category=tweet_image';
+        const headers = { 'Authorization': await super.getAuthorizedClient('GET', endpoint) };
+        const body = new FormData();
+        body.append("media", image);
+        return fetch(endpoint, { method: 'POST', headers, body })
+          .then((res) => res.json())
+          .then(({media_id_string}) => media_id_string);
+      }
+    }
+
+    class OauthClient {
+      constructor(consumerKey, consumerSecret, accessToken, accessTokenSecret) {
+        this.consumerKey = consumerKey;
+        this.consumerSecret = consumerSecret;
+        this.accessToken = accessToken;
+        this.accessTokenSecret = accessTokenSecret;
+      }
+
+      get oauthParams() {
+        const nonce = Array.from(window.crypto.getRandomValues(new Uint8Array(32))).map((uint) => uint.toString(16).padStart(2, '0')).join('');
+
+        const params = new Map();
+        params.set('oauth_consumer_key', this.consumerKey);
+        params.set('oauth_nonce', nonce);
+        params.set('oauth_signature_method', 'HMAC-SHA1');
+        params.set('oauth_timestamp', Math.floor(Date.now() / 1000));
+        params.set('oauth_token', this.accessToken);
+        params.set('oauth_version', '1.0');
+
+        return params;
+      }
+
+      async getAuthorizedClient(method = '', endpoint = '', parameters = new Map()) {
+        const encodeURIComponentRFC3986 = (str) => encodeURIComponent(str).replace(/[!'()*]/g, (char) => '%' + char.charCodeAt(0).toString(16));
+        const encode = (kv) => kv.map(encodeURIComponentRFC3986);
+        const sort = ([a], [b]) => a < b ? -1 : a > b ? 1 : 0;
+        const arrange = (...kv) => kv.map(encode).sort(sort);
+        const params = arrange(...this.oauthParams, ...parameters);
+        const query = `${new URLSearchParams(params)}`;
+
+        // シグネチャベース・キー文字列
+        const signatureBaseString = [method, endpoint, query].join('&');
+        const signatureKeyString = [this.consumerSecret, this.accessTokenSecret].map(encodeURIComponentRFC3986).join('&');
+
+        // シグネチャベース・キー
+        const stringToUint8Array = (str) => Uint8Array.from(Array.from(str).map(char => char.charCodeAt(0)));
+        const signatureBase = stringToUint8Array(signatureBaseString);
+        const signatureKey  = stringToUint8Array(signatureKeyString);
+
+        // シグネチャ計算
+        const signatureCryptoKey = await window.crypto.subtle.importKey('raw', signatureKey, { name: 'HMAC', hash: { name: 'SHA-1' } }, true, ['sign']);
+        const signatureArrayBuffer = await window.crypto.subtle.sign('HMAC', signatureCryptoKey, signatureBase);
+
+        const arrayBufferToAscii = (...arrayBuffer) => arrayBuffer.map((char) => String.fromCharCode(char)).join('');
+        const arrayBufferToBase64String = (arrayBuffer) => btoa(arrayBufferToAscii(new Uint8Array(arrayBuffer)));
+        const signature = arrayBufferToBase64String(signatureArrayBuffer);
+
+        return 'OAuth ' + arrange(...params, ['oauth_signature', signature]).map(([k, v]) => `${k}="${v}"`).join(', ');
+      }
+    }
+  })();
+</script>
+</body>
+</html>
