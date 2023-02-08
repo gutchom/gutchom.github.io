@@ -5,46 +5,48 @@
   <meta name="viewport" content="initial-scale=1.0, width=device-width" />
   <title>Verticalizer</title>
   <style>
-    textarea, button {
-      font-size: 18px;
+    body {
+      max-width: 640px;
     }
-    form > * {
-      display: block;
-      margin: 16px auto;
+    button, textarea {
+      font-size: 18px;
     }
   </style>
 </head>
 <body>
-  <a href="/">←Topに戻る</a>
-  <form id="converter">
-    <textarea name="text" cols="32" rows="16">
-縦書きの
-ツイート作るよ
-最上川
-
-
-字面合わせに
-全角スペースで埋めるので
-実字数は増えます</textarea>
-    <button name="rotate" type="button">縦書きにする</button>
-    <textarea name="result" cols="32" rows="16"></textarea>
-  </form>
+  <button id="rotate" type="button">縦書きにする</button>
+  <label>
+    <textarea id="textarea" cols="24" rows="10" placeholder="縦書きにしたい文章を入力してください"></textarea>
+  </label>
   <script>
-    // HTML要素にid属性を持たせるとグローバルスコープにid属性を識別子とした変数が現れるので便利（!!!危ない!!!）
-    // 参考資料：https://qiita.com/nakajmg/items/c895105afae95bfa8fae
-    converter.rotate.onclick = _ => converter.result.value = verticalizer(converter.text.value)
-
-    function verticalizer(text) {
-      const 全角スペース = '\u3000'
+    function verticalize(text) {
+      const 全角スペース = '\u3000';
       return text
         .split('\n')
         .reduce((text, line) => text + '\n' + line + 全角スペース.repeat((text = text.split('\n').slice(-1)[0]).length > line.length ? text.length - line.length : 0))
         .split('\n')
         .map(str => str.split(''))
         .reduceRight((arr, line) => arr.map((str, index) => str + (index < line.length ? line[index] : '')))
-        .join('\n')
-        .replace(/ー/g, ' | ')
+        .join('\n');
     }
+
+    const textarea = document.getElementById('textarea');
+    const rotate = document.getElementById('rotate');
+
+    rotate.addEventListener('click', () => {
+      textarea.value = verticalize(textarea.value);
+      textarea.select();
+    });
+
+    textarea.addEventListener('click', () => {
+      const empty = !/\S/g.test(textarea.value);
+      if (empty) {
+        navigator.clipboard.readText()
+          .then((t) => textarea.value = t)
+          .catch(() => textarea.value = '縦書きの\nツイート作るよ\n最上川')
+          .then(() => textarea.select());
+      }
+    });
   </script>
 </body>
 </html>
